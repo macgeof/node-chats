@@ -14,8 +14,20 @@ let _socket;
 _app.use(_express.static(_publicPath));
 
 _io.on('connection', (__socket) => {
-  console.log('New user connected');
+  console.log('New user has connected');
   _configureSocket(__socket);
+
+  _socket.emit('newMessage', {
+    from:'Admin',
+    text:'Welcome to the chat app',
+    createdAt: Date.now()
+  });
+
+  _socket.broadcast.emit('newMessage', {
+    from:'Admin',
+    text:'New user has joined the chat',
+    createdAt: Date.now()
+  })
 });
 
 const _configureSocket = function (__socket) {
@@ -28,6 +40,7 @@ const _configureSocket = function (__socket) {
   _socket.on('createMessage', (__data) => {
     __data.createdAt = Date.now();
     _io.emit('newMessage', __data);
+    // _socket.broadcast.emit('newMessage', __data);
   });
 }
 
