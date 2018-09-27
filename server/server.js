@@ -1,24 +1,41 @@
-const path = require('path');
-const http = require('http');
-const express = require('express');
-const socketIO = require('socket.io');
+const _path = require('path');
+const _http = require('http');
+const _express = require('express');
+const _socketIO = require('socket.io');
 
-const port = process.env.PORT || 3000;
-const publicPath = path.join(__dirname, '../public');
+const _port = process.env.PORT || 3000;
+const _publicPath = _path.join(__dirname, '../public');
 
-const app = new express();
-const server = http.createServer(app);
-const io = socketIO(server);
+const _app = new _express();
+const _server = _http.createServer(_app);
+const _io = _socketIO(_server);
+let _socket;
 
-app.use(express.static(publicPath));
+_app.use(_express.static(_publicPath));
 
-io.on('connection', (socket) => {
+_io.on('connection', (__socket) => {
   console.log('new user connected');
-  socket.on('disconnect', () => {
-    console.log('Client disconnected from server');
-  });
+  _configureSocket(__socket);
 });
 
-server.listen(port, () => {
-  console.log(`Server is started on port ${port}`);
+const _configureSocket = function (__socket) {
+  _socket = __socket;
+
+  _socket.on('disconnect', () => {
+    console.log('Client disconnected from server');
+  });
+
+  _socket.on('createMessage', (__data) => {
+    console.log('Create message heard.', __data, 'about to emit response.');
+    __data = {
+      from : 'you@there.com',
+      text : 'ok, that\'s fine by me',
+      createdAt : Date.now()
+    };
+    _socket.emit('newMessage', __data);
+  });
+}
+
+_server.listen(_port, () => {
+  console.log(`Server is started on port ${_port}`);
 });
