@@ -14,7 +14,7 @@ let _socket;
 _app.use(_express.static(_publicPath));
 
 _io.on('connection', (__socket) => {
-  console.log('new user connected');
+  console.log('New user connected');
   _configureSocket(__socket);
 });
 
@@ -26,13 +26,8 @@ const _configureSocket = function (__socket) {
   });
 
   _socket.on('createMessage', (__data) => {
-    console.log('Create message heard.', __data, 'about to emit response.');
-    __data = {
-      from : 'you@there.com',
-      text : 'ok, that\'s fine by me',
-      createdAt : Date.now()
-    };
-    _socket.emit('newMessage', __data);
+    __data.createdAt = Date.now();
+    _io.emit('newMessage', __data);
   });
 }
 
