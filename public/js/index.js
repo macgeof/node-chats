@@ -1,11 +1,26 @@
 var _socket = io();
 
+// UI elements
 var _locationButton = jQuery("#send-location");
 var _form = jQuery('#message-form');
 let _messageTextBox = jQuery('[name=message]');
 var _messages = jQuery('#messages');
 var _messageTempate = jQuery('#message-template');
 var _locationMessageTempate = jQuery('#location-message-template');
+
+function _scrollToBottom() {
+  // Selectors
+  var __newMessage = _messages.children('li:last-child');
+  // Heights
+  var __clientHeight = _messages.prop('clientHeight');
+  var __scrollTop = _messages.prop('scrollTop');
+  var __scrollHeight = _messages.prop('scrollHeight');
+  var __newMessageHeight = __newMessage.innerHeight();
+  var __lastMessageHeight = __newMessage.prev().innerHeight();
+  if (__clientHeight + __scrollTop + __newMessageHeight + __lastMessageHeight >= __scrollHeight) {
+    _messages.scrollTop(__scrollHeight);
+  }
+}
 
 _socket.on('connect', function () {
   console.log('Connected to server');
@@ -24,6 +39,7 @@ _socket.on('newMessage', function (message) {
     createdAt:formattedTime
   });
   _messages.append(html);
+  _scrollToBottom();
 });
 
 _socket.on('newLocationMessage', function (message) {
@@ -35,6 +51,7 @@ _socket.on('newLocationMessage', function (message) {
       createdAt:formattedTime
     });
     _messages.append(html);
+    _scrollToBottom();
 });
 
 _form.on('submit', function (e) {
