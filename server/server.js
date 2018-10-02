@@ -31,8 +31,13 @@ const _configureSocket = function (__socket) {
     console.log('Client disconnected from server');
   });
 
-  _socket.on('createMessage', (__data) => {
-    _io.emit('newMessage', _generateMessage(__data.from, __data.text));
+  _socket.on('createMessage', (__data, __callback) => {
+    const __response = _generateMessage(__data.from, __data.text, __data.id, (__callback !== null));
+    _io.emit('newMessage', __response);
+    if (__callback && typeof __callback === 'function') {
+      __callback({from:__data.from, text:__data.text, message:__data.message});
+    }
+      __callback = null;
   });
 }
 
