@@ -1,115 +1,40 @@
-require('./config/config');
-
-const _ = require('lodash');
+const path = require('path');
+const http = require('http');
 const express = require('express');
-const bodyParser = require('body-parser');
-const {ObjectID} = require('mongodb');
+const socketIO = require('socket.io');
 
-var {mongoose} = require('./db/mongoose');
-var {Todo} = require('./models/todo');
-var {User} = require('./models/user');
-
+const {generateMessage} = require('./utils/message');
+const publicPath = path.join(__dirname, '../public');
+const port = process.env.PORT || 3000;
 var app = express();
-const port = process.env.PORT;
+var server = http.createServer(app);
+var io = socketIO(server);
 
-app.use(bodyParser.json());
+app.use(express.static(publicPath));
 
-app.post('/todos', (req, res) => {
-  var todo = new Todo({
-    text: req.body.text
+io.on('connection', (socket) => {
+  console.log('New user connected');
+
+  socket.emit('newMessage', generateMessage('Admin', 'Welcome to the chat app'));
+
+  socket.broadcast.emit('newMessage', generateMessage('Admin', 'New user joined'));
+
+  socket.on('createMessage', (message, callback) => {
+    console.log('createMessage', message);
+    io.emit('newMessage', generateMessage(message.from, message.text));
+    callback('This is from the server.');
+    // socket.broadcast.emit('newMessage', {
+    //   from: message.from,
+    //   text: message.text,
+    //   createdAt: new Date().getTime()
+    // });
   });
 
-  todo.save().then((doc) => {
-    res.send(doc);
-  }, (e) => {
-    res.status(400).send(e);
-  });
-});
-
-app.get('/todos', (req, res) => {
-  Todo.find().then((todos) => {
-    res.send({todos});
-  }, (e) => {
-    res.status(400).send(e);
-  });
-});
-
-app.get('/todos/:id', (req, res) => {
-  var id = req.params.id;
-
-  if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
-  }
-
-  Todo.findById(id).then((todo) => {
-    if (!todo) {
-      return res.status(404).send();
-    }
-
-    res.send({todo});
-  }).catch((e) => {
-    res.status(400).send();
+  socket.on('disconnect', () => {
+    console.log('User was disconnected');
   });
 });
 
-app.delete('/todos/:id', (req, res) => {
-  var id = req.params.id;
-
-  if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
-  }
-
-  Todo.findByIdAndRemove(id).then((todo) => {
-    if (!todo) {
-      return res.status(404).send();
-    }
-
-    res.send({todo});
-  }).catch((e) => {
-    res.status(400).send();
-  });
+server.listen(port, () => {
+  console.log(`Server is up on ${port}`);
 });
-
-app.patch('/todos/:id', (req, res) => {
-  var id = req.params.id;
-  var body = _.pick(req.body, ['text', 'completed']);
-
-  if (!ObjectID.isValid(id)) {
-    return res.status(404).send();
-  }
-
-  if (_.isBoolean(body.completed) && body.completed) {
-    body.completedAt = new Date().getTime();
-  } else {
-    body.completed = false;
-    body.completedAt = null;
-  }
-
-  Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
-    if (!todo) {
-      return res.status(404).send();
-    }
-
-    res.send({todo});
-  }).catch((e) => {
-    res.status(400).send();
-  })
-});
-
-// POST /users
-app.post('/users', (req, res) => {
-  var body = _.pick(req.body, ['email', 'password']);
-  var user = new User(body);
-
-  user.save().then((user) => {
-    res.send(user);
-  }).catch((e) => {
-    res.status(400).send(e);
-  })
-});
-
-app.listen(port, () => {
-  console.log(`Started up at port ${port}`);
-});
-
-module.exports = {app};
